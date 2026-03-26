@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bakia – Historique Chess.com</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      color: #f0c040;
+    }
+
+    p.subtitle {
+      color: #aaa;
+      margin-bottom: 32px;
+    }
+
+    .search {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 32px;
+    }
+
+    .search input {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #16213e;
+      color: #eee;
+      font-size: 1rem;
+    }
+
+    .search input:focus {
+      outline: none;
+      border-color: #f0c040;
+    }
+
+    .search button {
+      padding: 12px 20px;
+      border-radius: 8px;
+      border: none;
+      background: #f0c040;
+      color: #1a1a2e;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .search button:hover { opacity: 0.85; }
+    .search button:disabled { opacity: 0.5; cursor: default; }
+
+    #status {
+      color: #aaa;
+      margin-bottom: 16px;
+      min-height: 20px;
+    }
+
+    #status.error { color: #e05c5c; }
+
+    .games {
+      width: 100%;
+      max-width: 700px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .game-card {
+      background: #16213e;
+      border-radius: 10px;
+      padding: 16px 20px;
+      border-left: 4px solid #555;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 4px 16px;
+      align-items: center;
+    }
+
+    .game-card.win  { border-left-color: #4caf50; }
+    .game-card.loss { border-left-color: #e05c5c; }
+    .game-card.draw { border-left-color: #f0c040; }
+
+    .game-players { font-weight: bold; font-size: 0.95rem; }
+    .game-meta    { font-size: 0.8rem; color: #888; }
+
+    .game-result {
+      font-weight: bold;
+      font-size: 1.1rem;
+      text-align: right;
+    }
+
+    .win  .game-result { color: #4caf50; }
+    .loss .game-result { color: #e05c5c; }
+    .draw .game-result { color: #f0c040; }
+
+    .game-link {
+      grid-column: 1 / -1;
+      font-size: 0.78rem;
+      color: #6688cc;
+      text-decoration: none;
+    }
+    .game-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<h1>♟ Bakia</h1>
+<p class="subtitle">Les 10 dernières parties d'un joueur Chess.com</p>
+
+<div class="search">
+  <input id="usernameInput" type="text" placeholder="Pseudo Chess.com…" />
+  <button id="searchBtn" onclick="fetchGames()">Rechercher</button>
+</div>
+
+<div id="status"></div>
+<div id="games" class="games"></div>
+
+<script>
+  document.getElementById('usernameInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') fetchGames();
+  });
+
+  async function fetchGames() {
+    const username = document.getElementById('usernameInput').value.trim();
+    const statusEl = document.getElementById('status');
+    const gamesEl  = document.getElementById('games');
+    const btn      = document.getElementById('searchBtn');
+
+    if (!username) return;
+
+    gamesEl.innerHTML = '';
+    statusEl.className = '';
+    statusEl.textContent = 'Chargement…';
+    btn.disabled = true;
+
+    try {
+      // 1. Récupérer la liste des archives mensuelles
+      const archivesRes = await fetch(`https://api.chess.com/pub/player/${username}/games/archives`);
+      if (!archivesRes.ok) throw new Error('Joueur introuvable');
+      const { archives } = await archivesRes.json();
+      if (!archives || archives.length === 0) throw new Error('Aucune partie trouvée');
+
+      // 2. Parcourir les archives en partant de la plus récente
+      let games = [];
+      for (let i = archives.length - 1; i >= 0 && games.length < 10; i--) {
+        const res = await fetch(archives[i]);
+        if (!res.ok) continue;
+        const data = await res.json();
+        games = [...(data.games || []), ...games];
+      }
+
+      // Garder les 10 dernières
+      games = games.slice(-10).reverse();
+
+      if (games.length === 0) throw new Error('Aucune partie trouvée');
+
+      statusEl.textContent = `${games.length} parties trouvées pour ${username}`;
+      gamesEl.innerHTML = games.map(g => renderGame(g, username.toLowerCase())).join('');
+
+    } catch (err) {
+      statusEl.className = 'error';
+      statusEl.textContent = err.message;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function renderGame(game, username) {
+    const white = game.white.username.toLowerCase();
+    const black = game.black.username.toLowerCase();
+    const isWhite = white === username;
+    const me    = isWhite ? game.white : game.black;
+    const opp   = isWhite ? game.black : game.white;
+
+    const resultRaw = me.result;
+    let resultLabel, cssClass;
+    if (resultRaw === 'win')                          { resultLabel = 'Victoire'; cssClass = 'win'; }
+    else if (['checkmated','resigned','timeout','abandoned','lose'].includes(resultRaw))
+                                                      { resultLabel = 'Défaite';  cssClass = 'loss'; }
+    else                                              { resultLabel = 'Nulle';    cssClass = 'draw'; }
+
+    const date    = new Date(game.end_time * 1000).toLocaleDateString('fr-FR');
+    const timeCtl = game.time_class.charAt(0).toUpperCase() + game.time_class.slice(1);
+    const color   = isWhite ? 'Blancs' : 'Noirs';
+    const myRating  = me.rating  || '?';
+    const oppRating = opp.rating || '?';
+
+    return `
+      <div class="game-card ${cssClass}">
+        <div class="game-players">
+          ${escHtml(me.username)} (${myRating}) vs ${escHtml(opp.username)} (${oppRating})
+        </div>
+        <div class="game-result">${resultLabel}</div>
+        <div class="game-meta">${date} · ${timeCtl} · ${color}</div>
+        <a class="game-link" href="${game.url}" target="_blank" rel="noopener">Voir la partie ↗</a>
+      </div>
+    `;
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+
+</body>
+</html>
