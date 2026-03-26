@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bakia – Historique Chess.com</title>
+  <title>Bakia – Analyse Chess.com</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -20,515 +20,224 @@
 
     /* ── Header ── */
     h1 { font-size: 2rem; color: #f0c040; margin-bottom: 4px; }
-    .subtitle { color: #6b7280; margin-bottom: 32px; font-size: 0.9rem; }
+    .subtitle { color: #6b7280; margin-bottom: 28px; font-size: .9rem; }
 
     /* ── Search ── */
-    .search {
-      display: flex; gap: 8px;
-      width: 100%; max-width: 480px;
-      margin-bottom: 28px;
-    }
+    .search { display:flex; gap:8px; width:100%; max-width:480px; margin-bottom:20px; }
     .search input {
-      flex: 1; padding: 12px 16px;
-      border-radius: 8px; border: 1px solid #374151;
-      background: #1f2937; color: #e5e7eb; font-size: 1rem;
+      flex:1; padding:12px 16px; border-radius:8px;
+      border:1px solid #374151; background:#1f2937; color:#e5e7eb; font-size:1rem;
     }
-    .search input:focus { outline: none; border-color: #f0c040; }
+    .search input:focus { outline:none; border-color:#f0c040; }
     .search button {
-      padding: 12px 20px; border-radius: 8px; border: none;
-      background: #f0c040; color: #111827;
-      font-weight: 700; font-size: 1rem; cursor: pointer;
-      transition: opacity .2s;
+      padding:12px 20px; border-radius:8px; border:none;
+      background:#f0c040; color:#111827; font-weight:700; font-size:1rem; cursor:pointer;
+      transition:opacity .2s;
     }
-    .search button:hover { opacity: .85; }
-    .search button:disabled { opacity: .45; cursor: default; }
+    .search button:hover { opacity:.85; }
+    .search button:disabled { opacity:.45; cursor:default; }
 
     /* ── Status ── */
-    #status { color: #6b7280; margin-bottom: 16px; min-height: 20px; font-size: .9rem; }
-    #status.error { color: #f87171; }
+    #status { color:#6b7280; margin-bottom:14px; min-height:20px; font-size:.9rem; }
+    #status.error { color:#f87171; }
+
+    /* ── Profile banner ── */
+    #profileBanner { width:100%; max-width:680px; margin-bottom:18px; }
+    .profile-inner {
+      background:#1f2937; border-radius:12px; padding:16px 20px;
+      display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    }
+    .profile-left { display:flex; align-items:center; gap:14px; }
+    .avatar { width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid #374151; }
+    .avatar-placeholder {
+      width:56px; height:56px; border-radius:50%;
+      background:#374151; display:flex; align-items:center; justify-content:center; font-size:1.6rem;
+    }
+    .profile-name { font-weight:700; font-size:1.05rem; display:flex; align-items:center; gap:6px; }
+    .player-title { font-size:.85rem; font-weight:700; background:#1a1a2e; padding:1px 5px; border-radius:3px; }
+    .profile-sub  { font-size:.78rem; color:#9ca3af; margin-top:2px; }
+    .profile-ratings { display:flex; gap:8px; flex-wrap:wrap; }
+    .rating-chip {
+      background:#111827; border-radius:8px; padding:8px 12px;
+      display:flex; flex-direction:column; align-items:center; min-width:64px;
+    }
+    .rc-label { font-size:.68rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em; }
+    .rc-val   { font-weight:700; font-size:1rem; color:#f0c040; }
+    .rc-best  { font-size:.7rem; color:#9ca3af; }
 
     /* ── Game list ── */
-    .games { width: 100%; max-width: 680px; display: flex; flex-direction: column; gap: 10px; }
-
+    .games { width:100%; max-width:680px; display:flex; flex-direction:column; gap:8px; }
     .game-card {
-      background: #1f2937;
-      border-radius: 10px;
-      padding: 14px 18px;
-      border-left: 4px solid #4b5563;
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      gap: 2px 14px;
-      align-items: center;
-      cursor: pointer;
-      transition: background .15s, transform .1s;
+      background:#1f2937; border-radius:10px; padding:12px 16px;
+      border-left:4px solid #4b5563;
+      display:flex; align-items:center; gap:12px;
+      cursor:pointer; transition:background .15s, transform .1s;
     }
-    .game-card:hover { background: #263348; transform: translateX(2px); }
-    .game-card.win  { border-left-color: #4ade80; }
-    .game-card.loss { border-left-color: #f87171; }
-    .game-card.draw { border-left-color: #fbbf24; }
+    .game-card:hover { background:#263348; transform:translateX(2px); }
+    .game-card.win  { border-left-color:#4ade80; }
+    .game-card.loss { border-left-color:#f87171; }
+    .game-card.draw { border-left-color:#fbbf24; }
 
-    .card-color-dot {
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      border: 2px solid #4b5563;
-      grid-row: 1 / 3;
-      flex-shrink: 0;
-    }
-    .card-color-dot.white { background: #f0f0f0; }
-    .card-color-dot.black { background: #1a1a2e; }
+    .card-dot { width:22px; height:22px; border-radius:50%; border:2px solid #4b5563; flex-shrink:0; }
+    .card-dot.white { background:#f0f0f0; }
+    .card-dot.black { background:#1a1a2e; }
+    .card-body { flex:1; min-width:0; }
+    .card-players { font-weight:600; font-size:.92rem; display:flex; align-items:baseline; gap:8px; }
+    .card-ratings { font-weight:400; font-size:.78rem; color:#9ca3af; }
+    .card-meta    { font-size:.76rem; color:#6b7280; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .card-right   { text-align:right; flex-shrink:0; }
+    .card-result  { font-weight:700; font-size:.9rem; }
+    .win  .card-result { color:#4ade80; }
+    .loss .card-result { color:#f87171; }
+    .draw .card-result { color:#fbbf24; }
+    .card-acc { font-size:.72rem; color:#9ca3af; margin-top:2px; }
 
-    .card-players { font-weight: 600; font-size: .95rem; color: #f3f4f6; }
-    .card-meta    { font-size: .78rem; color: #9ca3af; }
-
-    .card-result {
-      font-weight: 700; font-size: 1rem;
-      text-align: right; grid-row: 1 / 3;
-      padding-left: 8px;
-    }
-    .win  .card-result { color: #4ade80; }
-    .loss .card-result { color: #f87171; }
-    .draw .card-result { color: #fbbf24; }
-
-    /* ── Modal overlay ── */
+    /* ── Overlay & Modal ── */
     .overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.75);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 100; padding: 16px;
-      opacity: 0; pointer-events: none;
-      transition: opacity .2s;
+      position:fixed; inset:0; background:rgba(0,0,0,.8);
+      display:flex; align-items:center; justify-content:center;
+      z-index:100; padding:16px;
+      opacity:0; pointer-events:none; transition:opacity .2s;
     }
-    .overlay.open { opacity: 1; pointer-events: all; }
-
+    .overlay.open { opacity:1; pointer-events:all; }
     .modal {
-      background: #1f2937;
-      border-radius: 14px;
-      width: 100%; max-width: 620px;
-      max-height: 90vh;
-      overflow-y: auto;
-      padding: 28px;
-      position: relative;
-      transform: translateY(20px);
-      transition: transform .2s;
+      background:#1f2937; border-radius:14px;
+      width:100%; max-width:640px; max-height:92vh; overflow-y:auto;
+      padding:26px; position:relative;
+      transform:translateY(20px); transition:transform .2s;
     }
-    .overlay.open .modal { transform: translateY(0); }
-
+    .overlay.open .modal { transform:translateY(0); }
     .modal-close {
-      position: absolute; top: 16px; right: 18px;
-      background: none; border: none; color: #9ca3af;
-      font-size: 1.4rem; cursor: pointer; line-height: 1;
+      position:absolute; top:14px; right:16px;
+      background:none; border:none; color:#6b7280; font-size:1.3rem; cursor:pointer;
     }
-    .modal-close:hover { color: #e5e7eb; }
+    .modal-close:hover { color:#e5e7eb; }
 
-    /* ── Modal: result banner ── */
+    /* ── Modal internals ── */
     .modal-banner {
-      border-radius: 8px;
-      padding: 10px 16px;
-      margin-bottom: 22px;
-      font-weight: 700; font-size: 1.1rem;
-      display: flex; align-items: center; gap: 10px;
+      border-radius:8px; padding:10px 16px; margin-bottom:20px;
+      font-weight:700; font-size:1rem; display:flex; align-items:center; gap:8px;
     }
-    .modal-banner.win  { background: #052e16; color: #4ade80; }
-    .modal-banner.loss { background: #2d0a0a; color: #f87171; }
-    .modal-banner.draw { background: #271f00; color: #fbbf24; }
+    .modal-banner.win  { background:#052e16; color:#4ade80; }
+    .modal-banner.loss { background:#2d0a0a; color:#f87171; }
+    .modal-banner.draw { background:#271f00; color:#fbbf24; }
 
-    /* ── Modal: players ── */
-    .players-row {
-      display: flex; align-items: center;
-      gap: 12px; margin-bottom: 22px;
-    }
+    .players-row { display:flex; align-items:center; gap:10px; margin-bottom:18px; }
     .player {
-      flex: 1; background: #111827;
-      border-radius: 10px; padding: 14px;
-      text-align: center;
+      flex:1; background:#111827; border-radius:10px; padding:14px; text-align:center;
     }
-    .player .piece {
-      font-size: 1.8rem; display: block; margin-bottom: 4px;
-    }
-    .player .name { font-weight: 700; font-size: 1rem; }
-    .player .rating { font-size: .85rem; color: #9ca3af; }
-    .player .p-result { font-size: .8rem; margin-top: 6px; font-weight: 600; }
-    .player.is-me { border: 1px solid #374151; }
-    .vs-label { font-size: 1.1rem; color: #6b7280; font-weight: 700; flex-shrink: 0; }
+    .player.is-me { border:1px solid #374151; }
+    .piece { font-size:1.7rem; display:block; margin-bottom:4px; }
+    .p-name { font-weight:700; font-size:.95rem; }
+    .p-elo  { font-size:.82rem; color:#9ca3af; margin-top:2px; }
+    .elo-diff { font-size:.75rem; }
+    .p-res  { font-size:.78rem; margin-top:6px; font-weight:600; }
+    .res-win     { color:#4ade80; }
+    .res-loss    { color:#f87171; }
+    .res-draw    { color:#fbbf24; }
+    .res-neutral { color:#9ca3af; }
+    .vs { font-size:1rem; color:#6b7280; font-weight:700; flex-shrink:0; }
 
-    /* ── Modal: accuracy bar ── */
-    .accuracy-row {
-      display: flex; gap: 10px;
-      margin-bottom: 22px;
-    }
-    .acc-block {
-      flex: 1; background: #111827;
-      border-radius: 8px; padding: 10px 14px;
-      text-align: center;
-    }
-    .acc-label { font-size: .75rem; color: #9ca3af; margin-bottom: 4px; }
-    .acc-value { font-size: 1.3rem; font-weight: 700; }
-    .acc-value.high   { color: #4ade80; }
-    .acc-value.medium { color: #fbbf24; }
-    .acc-value.low    { color: #f87171; }
-    .acc-value.na     { color: #6b7280; }
+    /* ── Accuracy ── */
+    .section-title { font-size:.75rem; color:#9ca3af; text-transform:uppercase; letter-spacing:.06em; margin-bottom:10px; }
+    .acc-row { display:flex; gap:10px; margin-bottom:18px; }
+    .acc-block { flex:1; background:#111827; border-radius:8px; padding:12px; }
+    .ab-label { font-size:.72rem; color:#6b7280; margin-bottom:6px; }
+    .ab-val { font-size:1.4rem; font-weight:700; margin-bottom:6px; }
+    .ab-val.high   { color:#4ade80; }
+    .ab-val.medium { color:#fbbf24; }
+    .ab-val.low    { color:#f87171; }
+    .ab-val.na     { color:#6b7280; }
+    .ab-bar { background:#1f2937; border-radius:4px; height:6px; overflow:hidden; }
+    .ab-fill { height:100%; border-radius:4px; }
+    .ab-fill.high   { background:#4ade80; }
+    .ab-fill.medium { background:#fbbf24; }
+    .ab-fill.low    { background:#f87171; }
 
-    /* ── Modal: info grid ── */
-    .info-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 22px;
-    }
-    .info-cell {
-      background: #111827; border-radius: 8px;
-      padding: 10px 14px;
-    }
-    .info-cell .label { font-size: .72rem; color: #9ca3af; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
-    .info-cell .value { font-size: .95rem; font-weight: 600; }
+    /* ── Info grid ── */
+    .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:18px; }
+    .info-cell { background:#111827; border-radius:8px; padding:10px 12px; }
+    .ic-label { font-size:.68rem; color:#6b7280; text-transform:uppercase; letter-spacing:.05em; margin-bottom:2px; }
+    .ic-val   { font-size:.88rem; font-weight:600; }
 
-    /* ── Modal: moves ── */
-    .moves-section h3 { font-size: .85rem; color: #9ca3af; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+    /* ── Stockfish analysis ── */
+    .analyze-btn {
+      width:100%; padding:12px; border-radius:8px; border:1px solid #374151;
+      background:#111827; color:#f0c040; font-size:.95rem; font-weight:600;
+      cursor:pointer; margin-bottom:14px; transition:background .15s;
+    }
+    .analyze-btn:hover:not(:disabled) { background:#1f2937; }
+    .analyze-btn:disabled { opacity:.5; cursor:default; }
+    .analysis-progress { padding:12px; background:#111827; border-radius:8px; }
+    .prog-bar { background:#1f2937; border-radius:4px; height:6px; margin-bottom:8px; overflow:hidden; }
+    .prog-fill { height:100%; background:#f0c040; border-radius:4px; transition:width .3s; }
+    .prog-label { font-size:.8rem; color:#9ca3af; }
+    .analysis-error { color:#f87171; font-size:.85rem; padding:10px; }
+
+    .eval-graph { width:100%; height:auto; border-radius:6px; margin-bottom:16px; display:block; }
+
+    .analysis-summary { display:flex; gap:12px; margin-bottom:16px; }
+    .as-col { flex:1; background:#111827; border-radius:8px; padding:12px; }
+    .as-title { font-size:.75rem; color:#9ca3af; text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px; }
+    .s-badge {
+      display:inline-block; font-size:.72rem; font-weight:600; padding:2px 7px;
+      border-radius:10px; border:1px solid; margin:2px 2px 2px 0;
+    }
+
+    .move-table-wrap { max-height:240px; overflow-y:auto; margin-bottom:4px; }
+    .move-table { width:100%; border-collapse:collapse; font-size:.8rem; }
+    .move-table th { background:#111827; color:#6b7280; padding:6px 8px; text-align:left; font-size:.7rem; text-transform:uppercase; position:sticky; top:0; }
+    .mt-row:nth-child(even) { background:#111827; }
+    .mt-row td { padding:5px 8px; }
+    .mt-num  { color:#6b7280; width:28px; }
+    .mt-white { color:#f0f0f0; font-weight:600; }
+    .mt-black { color:#9ca3af; font-weight:600; }
+    .mt-cls  { font-weight:600; font-size:.75rem; }
+    .mt-loss { color:#f97316; font-size:.75rem; }
+    .mt-eval { color:#9ca3af; font-family:monospace; font-size:.75rem; }
+
+    /* ── Moves list ── */
     .moves-list {
-      background: #111827; border-radius: 8px;
-      padding: 12px 14px;
-      font-family: 'Courier New', monospace;
-      font-size: .82rem;
-      line-height: 1.7;
-      max-height: 160px;
-      overflow-y: auto;
-      color: #d1d5db;
-      word-break: break-all;
+      background:#111827; border-radius:8px; padding:12px 14px;
+      font-family:'Courier New', monospace; font-size:.8rem; line-height:1.8;
+      max-height:140px; overflow-y:auto; color:#d1d5db;
+      word-break:break-all; margin-bottom:14px;
     }
-    .move-num { color: #6b7280; }
-    .move-white { color: #e5e7eb; }
-    .move-black { color: #9ca3af; }
+    .mv-num  { color:#6b7280; }
+    .mv-w    { color:#f0f0f0; }
+    .mv-b    { color:#9ca3af; }
+    .move-clk { font-size:.68rem; color:#4b5563; margin:0 3px; }
 
-    /* ── Modal: link ── */
     .view-link {
-      display: block; text-align: center;
-      margin-top: 20px; padding: 12px;
-      background: #263348; border-radius: 8px;
-      color: #60a5fa; text-decoration: none;
-      font-weight: 600; font-size: .95rem;
-      transition: background .15s;
+      display:block; text-align:center; padding:12px; border-radius:8px;
+      background:#111827; color:#60a5fa; text-decoration:none; font-weight:600; font-size:.9rem;
+      transition:background .15s;
     }
-    .view-link:hover { background: #2e3f5c; }
+    .view-link:hover { background:#1f2937; }
   </style>
 </head>
 <body>
 
 <h1>♟ Bakia</h1>
-<p class="subtitle">Les 10 dernières parties d'un joueur Chess.com</p>
+<p class="subtitle">Analyse de parties Chess.com avec Stockfish</p>
 
 <div class="search">
   <input id="usernameInput" type="text" placeholder="Pseudo Chess.com…" />
-  <button id="searchBtn" onclick="fetchGames()">Rechercher</button>
+  <button id="searchBtn" onclick="search()">Rechercher</button>
 </div>
 
 <div id="status"></div>
+<div id="profileBanner"></div>
 <div id="games" class="games"></div>
 
 <!-- Modal -->
-<div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
-  <div class="modal" id="modal">
+<div class="overlay" id="overlay">
+  <div class="modal">
     <button class="modal-close" onclick="closeModal()">✕</button>
     <div id="modalContent"></div>
   </div>
 </div>
 
-<script>
-  // ── Keyboard shortcut ────────────────────────────────
-  document.getElementById('usernameInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') fetchGames();
-  });
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeModal();
-  });
-
-  // ── State ─────────────────────────────────────────────
-  let currentUsername = '';
-  let gamesData = [];
-
-  // ── Fetch ─────────────────────────────────────────────
-  async function fetchGames() {
-    const username = document.getElementById('usernameInput').value.trim();
-    const statusEl = document.getElementById('status');
-    const gamesEl  = document.getElementById('games');
-    const btn      = document.getElementById('searchBtn');
-    if (!username) return;
-
-    currentUsername = username.toLowerCase();
-    gamesEl.innerHTML = '';
-    statusEl.className = '';
-    statusEl.textContent = 'Chargement…';
-    btn.disabled = true;
-
-    try {
-      const archivesRes = await fetch(`https://api.chess.com/pub/player/${username}/games/archives`);
-      if (!archivesRes.ok) throw new Error('Joueur introuvable');
-      const { archives } = await archivesRes.json();
-      if (!archives || archives.length === 0) throw new Error('Aucune partie trouvée');
-
-      let games = [];
-      for (let i = archives.length - 1; i >= 0 && games.length < 10; i--) {
-        const res = await fetch(archives[i]);
-        if (!res.ok) continue;
-        const data = await res.json();
-        games = [...(data.games || []), ...games];
-      }
-      games = games.slice(-10).reverse();
-      if (games.length === 0) throw new Error('Aucune partie trouvée');
-
-      gamesData = games;
-      statusEl.textContent = `${games.length} parties • ${username}`;
-      gamesEl.innerHTML = games.map((g, i) => renderCard(g, i)).join('');
-    } catch (err) {
-      statusEl.className = 'error';
-      statusEl.textContent = err.message;
-    } finally {
-      btn.disabled = false;
-    }
-  }
-
-  // ── Card (liste) ──────────────────────────────────────
-  function renderCard(game, index) {
-    const { me, opp, isWhite, cssClass, resultLabel } = gameInfo(game);
-    const date     = new Date(game.end_time * 1000).toLocaleDateString('fr-FR');
-    const timeCtl  = formatTimeControl(game.time_control, game.time_class);
-    const opening  = parsePgnHeader(game.pgn, 'Opening') || parsePgnHeader(game.pgn, 'ECO') || '';
-
-    return `
-      <div class="game-card ${cssClass}" onclick="openModal(${index})">
-        <div class="card-color-dot ${isWhite ? 'white' : 'black'}"></div>
-        <div class="card-players">${escHtml(me.username)} vs ${escHtml(opp.username)}</div>
-        <div class="card-result">${resultLabel}</div>
-        <div class="card-meta">${date} · ${timeCtl}${opening ? ' · ' + escHtml(opening) : ''}</div>
-      </div>
-    `;
-  }
-
-  // ── Modal (détail) ────────────────────────────────────
-  function openModal(index) {
-    const game = gamesData[index];
-    document.getElementById('modalContent').innerHTML = renderModalContent(game);
-    document.getElementById('overlay').classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeModal() {
-    document.getElementById('overlay').classList.remove('open');
-    document.body.style.overflow = '';
-  }
-
-  function handleOverlayClick(e) {
-    if (e.target === document.getElementById('overlay')) closeModal();
-  }
-
-  function renderModalContent(game) {
-    const { me, opp, isWhite, cssClass, resultLabel } = gameInfo(game);
-
-    // PGN headers
-    const opening     = parsePgnHeader(game.pgn, 'Opening')     || '—';
-    const eco         = parsePgnHeader(game.pgn, 'ECO')         || '';
-    const termination = parsePgnHeader(game.pgn, 'Termination') || '—';
-    const startTime   = parsePgnHeader(game.pgn, 'StartTime')   || '';
-    const startDate   = parsePgnHeader(game.pgn, 'StartDate')   || '';
-
-    // Moves
-    const moves      = parseMoves(game.pgn);
-    const moveCount  = moves.length;
-
-    // Time
-    const endDt     = new Date(game.end_time * 1000);
-    const dateStr   = endDt.toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
-    const timeStr   = endDt.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
-
-    // Accuracies
-    const accWhite = game.accuracies?.white;
-    const accBlack = game.accuracies?.black;
-    const myAcc    = isWhite ? accWhite : accBlack;
-    const oppAcc   = isWhite ? accBlack : accWhite;
-
-    // Time control
-    const timeCtl   = formatTimeControl(game.time_control, game.time_class);
-    const rated     = game.rated ? 'Classée' : 'Non classée';
-    const rules     = game.rules !== 'chess' ? game.rules : 'Échecs standard';
-
-    // Result detail
-    const myResultDetail  = translateResult(me.result);
-    const oppResultDetail = translateResult(opp.result);
-
-    // Rating diff
-    const ratingDiff = me.rating - opp.rating;
-    const diffStr    = (ratingDiff > 0 ? '+' : '') + ratingDiff;
-
-    return `
-      <div class="modal-banner ${cssClass}">
-        ${cssClass === 'win' ? '🏆' : cssClass === 'loss' ? '💀' : '🤝'}
-        ${resultLabel} · ${myResultDetail}
-      </div>
-
-      <div class="players-row">
-        <div class="player is-me">
-          <span class="piece">${isWhite ? '♙' : '♟'}</span>
-          <div class="name">${escHtml(me.username)}</div>
-          <div class="rating">${me.rating || '?'} elo</div>
-          <div class="p-result" style="color:${cssClass==='win'?'#4ade80':cssClass==='loss'?'#f87171':'#fbbf24'}">${myResultDetail}</div>
-        </div>
-        <div class="vs-label">vs</div>
-        <div class="player">
-          <span class="piece">${isWhite ? '♟' : '♙'}</span>
-          <div class="name">${escHtml(opp.username)}</div>
-          <div class="rating">${opp.rating || '?'} elo <span style="font-size:.75rem;color:#9ca3af">(${diffStr})</span></div>
-          <div class="p-result" style="color:#9ca3af">${oppResultDetail}</div>
-        </div>
-      </div>
-
-      ${(accWhite !== undefined || accBlack !== undefined) ? `
-      <div class="accuracy-row">
-        <div class="acc-block">
-          <div class="acc-label">Précision (moi)</div>
-          <div class="acc-value ${accClass(myAcc)}">${myAcc !== undefined ? myAcc.toFixed(1) + '%' : 'N/A'}</div>
-        </div>
-        <div class="acc-block">
-          <div class="acc-label">Précision (adversaire)</div>
-          <div class="acc-value ${accClass(oppAcc)}">${oppAcc !== undefined ? oppAcc.toFixed(1) + '%' : 'N/A'}</div>
-        </div>
-      </div>
-      ` : ''}
-
-      <div class="info-grid">
-        <div class="info-cell">
-          <div class="label">Ouverture</div>
-          <div class="value">${eco ? eco + ' · ' : ''}${escHtml(opening)}</div>
-        </div>
-        <div class="info-cell">
-          <div class="label">Fin de partie</div>
-          <div class="value">${escHtml(termination)}</div>
-        </div>
-        <div class="info-cell">
-          <div class="label">Coups joués</div>
-          <div class="value">${moveCount} coups</div>
-        </div>
-        <div class="info-cell">
-          <div class="label">Cadence</div>
-          <div class="value">${escHtml(timeCtl)}</div>
-        </div>
-        <div class="info-cell">
-          <div class="label">Statut</div>
-          <div class="value">${rated}</div>
-        </div>
-        <div class="info-cell">
-          <div class="label">Variante</div>
-          <div class="value">${escHtml(rules)}</div>
-        </div>
-        <div class="info-cell">
-          <div class="label">Date de fin</div>
-          <div class="value">${dateStr}</div>
-        </div>
-        <div class="info-cell">
-          <div class="label">Heure de fin</div>
-          <div class="value">${timeStr}</div>
-        </div>
-      </div>
-
-      <div class="moves-section">
-        <h3>Coups joués</h3>
-        <div class="moves-list">${renderMoves(moves)}</div>
-      </div>
-
-      <a class="view-link" href="${game.url}" target="_blank" rel="noopener">
-        Analyser la partie sur Chess.com ↗
-      </a>
-    `;
-  }
-
-  // ── Helpers ───────────────────────────────────────────
-
-  function gameInfo(game) {
-    const isWhite = game.white.username.toLowerCase() === currentUsername;
-    const me  = isWhite ? game.white : game.black;
-    const opp = isWhite ? game.black : game.white;
-    const r   = me.result;
-    let resultLabel, cssClass;
-    if (r === 'win') {
-      resultLabel = 'Victoire'; cssClass = 'win';
-    } else if (['checkmated','resigned','timeout','abandoned','lose'].includes(r)) {
-      resultLabel = 'Défaite'; cssClass = 'loss';
-    } else {
-      resultLabel = 'Nulle'; cssClass = 'draw';
-    }
-    return { me, opp, isWhite, cssClass, resultLabel };
-  }
-
-  function translateResult(result) {
-    const map = {
-      win: 'Victoire', checkmated: 'Mat', resigned: 'Abandon',
-      timeout: 'Temps écoulé', stalemate: 'Pat',
-      insufficient: 'Mat impossible', '50move': 'Règle des 50 coups',
-      repetition: 'Répétition', agreed: 'Accord mutuel',
-      timevsinsufficient: 'Temps vs mat impossible',
-      abandoned: 'Abandon', lose: 'Défaite', bughousepartnerlose: 'Partenaire perdu',
-    };
-    return map[result] || result;
-  }
-
-  function formatTimeControl(tc, cls) {
-    if (!tc) return cls || '?';
-    if (tc === '-') return 'Quotidien';
-    const [base, inc] = tc.split('+').map(Number);
-    const mins = Math.floor(base / 60);
-    const secs = base % 60;
-    let str = mins > 0 ? `${mins} min` : `${secs} sec`;
-    if (inc) str += ` +${inc}s`;
-    return str;
-  }
-
-  function parsePgnHeader(pgn, key) {
-    if (!pgn) return null;
-    const m = pgn.match(new RegExp(`\\[${key}\\s+"([^"]+)"\\]`));
-    return m ? m[1] : null;
-  }
-
-  function parseMoves(pgn) {
-    if (!pgn) return [];
-    // Remove headers
-    const body = pgn.replace(/\[[^\]]*\]\s*/g, '').trim();
-    // Remove clock annotations {[%clk ...]}
-    const clean = body.replace(/\{[^}]*\}/g, '').replace(/\s+/g, ' ').trim();
-    // Extract tokens, skip result
-    const tokens = clean.split(' ').filter(t => t && !/^(1-0|0-1|1\/2-1\/2|\*)$/.test(t));
-    // Build move pairs: ["1.", "e4", "e5", "2.", ...]
-    const moves = [];
-    let i = 0;
-    while (i < tokens.length) {
-      if (/^\d+\./.test(tokens[i])) {
-        const num = tokens[i];
-        const w   = tokens[i + 1] || '';
-        const b   = tokens[i + 2] && !/^\d+\./.test(tokens[i + 2]) ? tokens[i + 2] : '';
-        moves.push({ num: num.replace('.', ''), white: w, black: b });
-        i += b ? 3 : 2;
-      } else { i++; }
-    }
-    return moves;
-  }
-
-  function renderMoves(moves) {
-    return moves.map(m =>
-      `<span class="move-num">${m.num}.</span> ` +
-      `<span class="move-white">${escHtml(m.white)}</span> ` +
-      `<span class="move-black">${escHtml(m.black)}</span> `
-    ).join('');
-  }
-
-  function accClass(v) {
-    if (v === undefined || v === null) return 'na';
-    if (v >= 85) return 'high';
-    if (v >= 65) return 'medium';
-    return 'low';
-  }
-
-  function escHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-</script>
-
+<script type="module" src="/src/main.js"></script>
 </body>
 </html>
