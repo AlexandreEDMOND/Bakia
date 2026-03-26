@@ -5,119 +5,210 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bakia – Historique Chess.com</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: #1a1a2e;
-      color: #eee;
+      background: #111827;
+      color: #e5e7eb;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 40px 16px;
+      padding: 40px 16px 80px;
     }
 
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 8px;
-      color: #f0c040;
-    }
+    /* ── Header ── */
+    h1 { font-size: 2rem; color: #f0c040; margin-bottom: 4px; }
+    .subtitle { color: #6b7280; margin-bottom: 32px; font-size: 0.9rem; }
 
-    p.subtitle {
-      color: #aaa;
-      margin-bottom: 32px;
-    }
-
+    /* ── Search ── */
     .search {
-      display: flex;
-      gap: 8px;
-      width: 100%;
-      max-width: 480px;
-      margin-bottom: 32px;
+      display: flex; gap: 8px;
+      width: 100%; max-width: 480px;
+      margin-bottom: 28px;
     }
-
     .search input {
-      flex: 1;
-      padding: 12px 16px;
-      border-radius: 8px;
-      border: 1px solid #444;
-      background: #16213e;
-      color: #eee;
-      font-size: 1rem;
+      flex: 1; padding: 12px 16px;
+      border-radius: 8px; border: 1px solid #374151;
+      background: #1f2937; color: #e5e7eb; font-size: 1rem;
     }
-
-    .search input:focus {
-      outline: none;
-      border-color: #f0c040;
-    }
-
+    .search input:focus { outline: none; border-color: #f0c040; }
     .search button {
-      padding: 12px 20px;
-      border-radius: 8px;
-      border: none;
-      background: #f0c040;
-      color: #1a1a2e;
-      font-weight: bold;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: opacity 0.2s;
+      padding: 12px 20px; border-radius: 8px; border: none;
+      background: #f0c040; color: #111827;
+      font-weight: 700; font-size: 1rem; cursor: pointer;
+      transition: opacity .2s;
     }
+    .search button:hover { opacity: .85; }
+    .search button:disabled { opacity: .45; cursor: default; }
 
-    .search button:hover { opacity: 0.85; }
-    .search button:disabled { opacity: 0.5; cursor: default; }
+    /* ── Status ── */
+    #status { color: #6b7280; margin-bottom: 16px; min-height: 20px; font-size: .9rem; }
+    #status.error { color: #f87171; }
 
-    #status {
-      color: #aaa;
-      margin-bottom: 16px;
-      min-height: 20px;
-    }
-
-    #status.error { color: #e05c5c; }
-
-    .games {
-      width: 100%;
-      max-width: 700px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
+    /* ── Game list ── */
+    .games { width: 100%; max-width: 680px; display: flex; flex-direction: column; gap: 10px; }
 
     .game-card {
-      background: #16213e;
+      background: #1f2937;
       border-radius: 10px;
-      padding: 16px 20px;
-      border-left: 4px solid #555;
+      padding: 14px 18px;
+      border-left: 4px solid #4b5563;
       display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 4px 16px;
+      grid-template-columns: auto 1fr auto;
+      gap: 2px 14px;
       align-items: center;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
     }
+    .game-card:hover { background: #263348; transform: translateX(2px); }
+    .game-card.win  { border-left-color: #4ade80; }
+    .game-card.loss { border-left-color: #f87171; }
+    .game-card.draw { border-left-color: #fbbf24; }
 
-    .game-card.win  { border-left-color: #4caf50; }
-    .game-card.loss { border-left-color: #e05c5c; }
-    .game-card.draw { border-left-color: #f0c040; }
-
-    .game-players { font-weight: bold; font-size: 0.95rem; }
-    .game-meta    { font-size: 0.8rem; color: #888; }
-
-    .game-result {
-      font-weight: bold;
-      font-size: 1.1rem;
-      text-align: right;
+    .card-color-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 2px solid #4b5563;
+      grid-row: 1 / 3;
+      flex-shrink: 0;
     }
+    .card-color-dot.white { background: #f0f0f0; }
+    .card-color-dot.black { background: #1a1a2e; }
 
-    .win  .game-result { color: #4caf50; }
-    .loss .game-result { color: #e05c5c; }
-    .draw .game-result { color: #f0c040; }
+    .card-players { font-weight: 600; font-size: .95rem; color: #f3f4f6; }
+    .card-meta    { font-size: .78rem; color: #9ca3af; }
 
-    .game-link {
-      grid-column: 1 / -1;
-      font-size: 0.78rem;
-      color: #6688cc;
-      text-decoration: none;
+    .card-result {
+      font-weight: 700; font-size: 1rem;
+      text-align: right; grid-row: 1 / 3;
+      padding-left: 8px;
     }
-    .game-link:hover { text-decoration: underline; }
+    .win  .card-result { color: #4ade80; }
+    .loss .card-result { color: #f87171; }
+    .draw .card-result { color: #fbbf24; }
+
+    /* ── Modal overlay ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.75);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; padding: 16px;
+      opacity: 0; pointer-events: none;
+      transition: opacity .2s;
+    }
+    .overlay.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: #1f2937;
+      border-radius: 14px;
+      width: 100%; max-width: 620px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 28px;
+      position: relative;
+      transform: translateY(20px);
+      transition: transform .2s;
+    }
+    .overlay.open .modal { transform: translateY(0); }
+
+    .modal-close {
+      position: absolute; top: 16px; right: 18px;
+      background: none; border: none; color: #9ca3af;
+      font-size: 1.4rem; cursor: pointer; line-height: 1;
+    }
+    .modal-close:hover { color: #e5e7eb; }
+
+    /* ── Modal: result banner ── */
+    .modal-banner {
+      border-radius: 8px;
+      padding: 10px 16px;
+      margin-bottom: 22px;
+      font-weight: 700; font-size: 1.1rem;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .modal-banner.win  { background: #052e16; color: #4ade80; }
+    .modal-banner.loss { background: #2d0a0a; color: #f87171; }
+    .modal-banner.draw { background: #271f00; color: #fbbf24; }
+
+    /* ── Modal: players ── */
+    .players-row {
+      display: flex; align-items: center;
+      gap: 12px; margin-bottom: 22px;
+    }
+    .player {
+      flex: 1; background: #111827;
+      border-radius: 10px; padding: 14px;
+      text-align: center;
+    }
+    .player .piece {
+      font-size: 1.8rem; display: block; margin-bottom: 4px;
+    }
+    .player .name { font-weight: 700; font-size: 1rem; }
+    .player .rating { font-size: .85rem; color: #9ca3af; }
+    .player .p-result { font-size: .8rem; margin-top: 6px; font-weight: 600; }
+    .player.is-me { border: 1px solid #374151; }
+    .vs-label { font-size: 1.1rem; color: #6b7280; font-weight: 700; flex-shrink: 0; }
+
+    /* ── Modal: accuracy bar ── */
+    .accuracy-row {
+      display: flex; gap: 10px;
+      margin-bottom: 22px;
+    }
+    .acc-block {
+      flex: 1; background: #111827;
+      border-radius: 8px; padding: 10px 14px;
+      text-align: center;
+    }
+    .acc-label { font-size: .75rem; color: #9ca3af; margin-bottom: 4px; }
+    .acc-value { font-size: 1.3rem; font-weight: 700; }
+    .acc-value.high   { color: #4ade80; }
+    .acc-value.medium { color: #fbbf24; }
+    .acc-value.low    { color: #f87171; }
+    .acc-value.na     { color: #6b7280; }
+
+    /* ── Modal: info grid ── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .info-cell {
+      background: #111827; border-radius: 8px;
+      padding: 10px 14px;
+    }
+    .info-cell .label { font-size: .72rem; color: #9ca3af; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
+    .info-cell .value { font-size: .95rem; font-weight: 600; }
+
+    /* ── Modal: moves ── */
+    .moves-section h3 { font-size: .85rem; color: #9ca3af; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+    .moves-list {
+      background: #111827; border-radius: 8px;
+      padding: 12px 14px;
+      font-family: 'Courier New', monospace;
+      font-size: .82rem;
+      line-height: 1.7;
+      max-height: 160px;
+      overflow-y: auto;
+      color: #d1d5db;
+      word-break: break-all;
+    }
+    .move-num { color: #6b7280; }
+    .move-white { color: #e5e7eb; }
+    .move-black { color: #9ca3af; }
+
+    /* ── Modal: link ── */
+    .view-link {
+      display: block; text-align: center;
+      margin-top: 20px; padding: 12px;
+      background: #263348; border-radius: 8px;
+      color: #60a5fa; text-decoration: none;
+      font-weight: 600; font-size: .95rem;
+      transition: background .15s;
+    }
+    .view-link:hover { background: #2e3f5c; }
   </style>
 </head>
 <body>
@@ -133,32 +224,47 @@
 <div id="status"></div>
 <div id="games" class="games"></div>
 
+<!-- Modal -->
+<div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
 <script>
+  // ── Keyboard shortcut ────────────────────────────────
   document.getElementById('usernameInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') fetchGames();
   });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+  });
 
+  // ── State ─────────────────────────────────────────────
+  let currentUsername = '';
+  let gamesData = [];
+
+  // ── Fetch ─────────────────────────────────────────────
   async function fetchGames() {
     const username = document.getElementById('usernameInput').value.trim();
     const statusEl = document.getElementById('status');
     const gamesEl  = document.getElementById('games');
     const btn      = document.getElementById('searchBtn');
-
     if (!username) return;
 
+    currentUsername = username.toLowerCase();
     gamesEl.innerHTML = '';
     statusEl.className = '';
     statusEl.textContent = 'Chargement…';
     btn.disabled = true;
 
     try {
-      // 1. Récupérer la liste des archives mensuelles
       const archivesRes = await fetch(`https://api.chess.com/pub/player/${username}/games/archives`);
       if (!archivesRes.ok) throw new Error('Joueur introuvable');
       const { archives } = await archivesRes.json();
       if (!archives || archives.length === 0) throw new Error('Aucune partie trouvée');
 
-      // 2. Parcourir les archives en partant de la plus récente
       let games = [];
       for (let i = archives.length - 1; i >= 0 && games.length < 10; i--) {
         const res = await fetch(archives[i]);
@@ -166,15 +272,12 @@
         const data = await res.json();
         games = [...(data.games || []), ...games];
       }
-
-      // Garder les 10 dernières
       games = games.slice(-10).reverse();
-
       if (games.length === 0) throw new Error('Aucune partie trouvée');
 
-      statusEl.textContent = `${games.length} parties trouvées pour ${username}`;
-      gamesEl.innerHTML = games.map(g => renderGame(g, username.toLowerCase())).join('');
-
+      gamesData = games;
+      statusEl.textContent = `${games.length} parties • ${username}`;
+      gamesEl.innerHTML = games.map((g, i) => renderCard(g, i)).join('');
     } catch (err) {
       statusEl.className = 'error';
       statusEl.textContent = err.message;
@@ -183,40 +286,247 @@
     }
   }
 
-  function renderGame(game, username) {
-    const white = game.white.username.toLowerCase();
-    const black = game.black.username.toLowerCase();
-    const isWhite = white === username;
-    const me    = isWhite ? game.white : game.black;
-    const opp   = isWhite ? game.black : game.white;
-
-    const resultRaw = me.result;
-    let resultLabel, cssClass;
-    if (resultRaw === 'win')                          { resultLabel = 'Victoire'; cssClass = 'win'; }
-    else if (['checkmated','resigned','timeout','abandoned','lose'].includes(resultRaw))
-                                                      { resultLabel = 'Défaite';  cssClass = 'loss'; }
-    else                                              { resultLabel = 'Nulle';    cssClass = 'draw'; }
-
-    const date    = new Date(game.end_time * 1000).toLocaleDateString('fr-FR');
-    const timeCtl = game.time_class.charAt(0).toUpperCase() + game.time_class.slice(1);
-    const color   = isWhite ? 'Blancs' : 'Noirs';
-    const myRating  = me.rating  || '?';
-    const oppRating = opp.rating || '?';
+  // ── Card (liste) ──────────────────────────────────────
+  function renderCard(game, index) {
+    const { me, opp, isWhite, cssClass, resultLabel } = gameInfo(game);
+    const date     = new Date(game.end_time * 1000).toLocaleDateString('fr-FR');
+    const timeCtl  = formatTimeControl(game.time_control, game.time_class);
+    const opening  = parsePgnHeader(game.pgn, 'Opening') || parsePgnHeader(game.pgn, 'ECO') || '';
 
     return `
-      <div class="game-card ${cssClass}">
-        <div class="game-players">
-          ${escHtml(me.username)} (${myRating}) vs ${escHtml(opp.username)} (${oppRating})
-        </div>
-        <div class="game-result">${resultLabel}</div>
-        <div class="game-meta">${date} · ${timeCtl} · ${color}</div>
-        <a class="game-link" href="${game.url}" target="_blank" rel="noopener">Voir la partie ↗</a>
+      <div class="game-card ${cssClass}" onclick="openModal(${index})">
+        <div class="card-color-dot ${isWhite ? 'white' : 'black'}"></div>
+        <div class="card-players">${escHtml(me.username)} vs ${escHtml(opp.username)}</div>
+        <div class="card-result">${resultLabel}</div>
+        <div class="card-meta">${date} · ${timeCtl}${opening ? ' · ' + escHtml(opening) : ''}</div>
       </div>
     `;
   }
 
+  // ── Modal (détail) ────────────────────────────────────
+  function openModal(index) {
+    const game = gamesData[index];
+    document.getElementById('modalContent').innerHTML = renderModalContent(game);
+    document.getElementById('overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    document.getElementById('overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('overlay')) closeModal();
+  }
+
+  function renderModalContent(game) {
+    const { me, opp, isWhite, cssClass, resultLabel } = gameInfo(game);
+
+    // PGN headers
+    const opening     = parsePgnHeader(game.pgn, 'Opening')     || '—';
+    const eco         = parsePgnHeader(game.pgn, 'ECO')         || '';
+    const termination = parsePgnHeader(game.pgn, 'Termination') || '—';
+    const startTime   = parsePgnHeader(game.pgn, 'StartTime')   || '';
+    const startDate   = parsePgnHeader(game.pgn, 'StartDate')   || '';
+
+    // Moves
+    const moves      = parseMoves(game.pgn);
+    const moveCount  = moves.length;
+
+    // Time
+    const endDt     = new Date(game.end_time * 1000);
+    const dateStr   = endDt.toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
+    const timeStr   = endDt.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+
+    // Accuracies
+    const accWhite = game.accuracies?.white;
+    const accBlack = game.accuracies?.black;
+    const myAcc    = isWhite ? accWhite : accBlack;
+    const oppAcc   = isWhite ? accBlack : accWhite;
+
+    // Time control
+    const timeCtl   = formatTimeControl(game.time_control, game.time_class);
+    const rated     = game.rated ? 'Classée' : 'Non classée';
+    const rules     = game.rules !== 'chess' ? game.rules : 'Échecs standard';
+
+    // Result detail
+    const myResultDetail  = translateResult(me.result);
+    const oppResultDetail = translateResult(opp.result);
+
+    // Rating diff
+    const ratingDiff = me.rating - opp.rating;
+    const diffStr    = (ratingDiff > 0 ? '+' : '') + ratingDiff;
+
+    return `
+      <div class="modal-banner ${cssClass}">
+        ${cssClass === 'win' ? '🏆' : cssClass === 'loss' ? '💀' : '🤝'}
+        ${resultLabel} · ${myResultDetail}
+      </div>
+
+      <div class="players-row">
+        <div class="player is-me">
+          <span class="piece">${isWhite ? '♙' : '♟'}</span>
+          <div class="name">${escHtml(me.username)}</div>
+          <div class="rating">${me.rating || '?'} elo</div>
+          <div class="p-result" style="color:${cssClass==='win'?'#4ade80':cssClass==='loss'?'#f87171':'#fbbf24'}">${myResultDetail}</div>
+        </div>
+        <div class="vs-label">vs</div>
+        <div class="player">
+          <span class="piece">${isWhite ? '♟' : '♙'}</span>
+          <div class="name">${escHtml(opp.username)}</div>
+          <div class="rating">${opp.rating || '?'} elo <span style="font-size:.75rem;color:#9ca3af">(${diffStr})</span></div>
+          <div class="p-result" style="color:#9ca3af">${oppResultDetail}</div>
+        </div>
+      </div>
+
+      ${(accWhite !== undefined || accBlack !== undefined) ? `
+      <div class="accuracy-row">
+        <div class="acc-block">
+          <div class="acc-label">Précision (moi)</div>
+          <div class="acc-value ${accClass(myAcc)}">${myAcc !== undefined ? myAcc.toFixed(1) + '%' : 'N/A'}</div>
+        </div>
+        <div class="acc-block">
+          <div class="acc-label">Précision (adversaire)</div>
+          <div class="acc-value ${accClass(oppAcc)}">${oppAcc !== undefined ? oppAcc.toFixed(1) + '%' : 'N/A'}</div>
+        </div>
+      </div>
+      ` : ''}
+
+      <div class="info-grid">
+        <div class="info-cell">
+          <div class="label">Ouverture</div>
+          <div class="value">${eco ? eco + ' · ' : ''}${escHtml(opening)}</div>
+        </div>
+        <div class="info-cell">
+          <div class="label">Fin de partie</div>
+          <div class="value">${escHtml(termination)}</div>
+        </div>
+        <div class="info-cell">
+          <div class="label">Coups joués</div>
+          <div class="value">${moveCount} coups</div>
+        </div>
+        <div class="info-cell">
+          <div class="label">Cadence</div>
+          <div class="value">${escHtml(timeCtl)}</div>
+        </div>
+        <div class="info-cell">
+          <div class="label">Statut</div>
+          <div class="value">${rated}</div>
+        </div>
+        <div class="info-cell">
+          <div class="label">Variante</div>
+          <div class="value">${escHtml(rules)}</div>
+        </div>
+        <div class="info-cell">
+          <div class="label">Date de fin</div>
+          <div class="value">${dateStr}</div>
+        </div>
+        <div class="info-cell">
+          <div class="label">Heure de fin</div>
+          <div class="value">${timeStr}</div>
+        </div>
+      </div>
+
+      <div class="moves-section">
+        <h3>Coups joués</h3>
+        <div class="moves-list">${renderMoves(moves)}</div>
+      </div>
+
+      <a class="view-link" href="${game.url}" target="_blank" rel="noopener">
+        Analyser la partie sur Chess.com ↗
+      </a>
+    `;
+  }
+
+  // ── Helpers ───────────────────────────────────────────
+
+  function gameInfo(game) {
+    const isWhite = game.white.username.toLowerCase() === currentUsername;
+    const me  = isWhite ? game.white : game.black;
+    const opp = isWhite ? game.black : game.white;
+    const r   = me.result;
+    let resultLabel, cssClass;
+    if (r === 'win') {
+      resultLabel = 'Victoire'; cssClass = 'win';
+    } else if (['checkmated','resigned','timeout','abandoned','lose'].includes(r)) {
+      resultLabel = 'Défaite'; cssClass = 'loss';
+    } else {
+      resultLabel = 'Nulle'; cssClass = 'draw';
+    }
+    return { me, opp, isWhite, cssClass, resultLabel };
+  }
+
+  function translateResult(result) {
+    const map = {
+      win: 'Victoire', checkmated: 'Mat', resigned: 'Abandon',
+      timeout: 'Temps écoulé', stalemate: 'Pat',
+      insufficient: 'Mat impossible', '50move': 'Règle des 50 coups',
+      repetition: 'Répétition', agreed: 'Accord mutuel',
+      timevsinsufficient: 'Temps vs mat impossible',
+      abandoned: 'Abandon', lose: 'Défaite', bughousepartnerlose: 'Partenaire perdu',
+    };
+    return map[result] || result;
+  }
+
+  function formatTimeControl(tc, cls) {
+    if (!tc) return cls || '?';
+    if (tc === '-') return 'Quotidien';
+    const [base, inc] = tc.split('+').map(Number);
+    const mins = Math.floor(base / 60);
+    const secs = base % 60;
+    let str = mins > 0 ? `${mins} min` : `${secs} sec`;
+    if (inc) str += ` +${inc}s`;
+    return str;
+  }
+
+  function parsePgnHeader(pgn, key) {
+    if (!pgn) return null;
+    const m = pgn.match(new RegExp(`\\[${key}\\s+"([^"]+)"\\]`));
+    return m ? m[1] : null;
+  }
+
+  function parseMoves(pgn) {
+    if (!pgn) return [];
+    // Remove headers
+    const body = pgn.replace(/\[[^\]]*\]\s*/g, '').trim();
+    // Remove clock annotations {[%clk ...]}
+    const clean = body.replace(/\{[^}]*\}/g, '').replace(/\s+/g, ' ').trim();
+    // Extract tokens, skip result
+    const tokens = clean.split(' ').filter(t => t && !/^(1-0|0-1|1\/2-1\/2|\*)$/.test(t));
+    // Build move pairs: ["1.", "e4", "e5", "2.", ...]
+    const moves = [];
+    let i = 0;
+    while (i < tokens.length) {
+      if (/^\d+\./.test(tokens[i])) {
+        const num = tokens[i];
+        const w   = tokens[i + 1] || '';
+        const b   = tokens[i + 2] && !/^\d+\./.test(tokens[i + 2]) ? tokens[i + 2] : '';
+        moves.push({ num: num.replace('.', ''), white: w, black: b });
+        i += b ? 3 : 2;
+      } else { i++; }
+    }
+    return moves;
+  }
+
+  function renderMoves(moves) {
+    return moves.map(m =>
+      `<span class="move-num">${m.num}.</span> ` +
+      `<span class="move-white">${escHtml(m.white)}</span> ` +
+      `<span class="move-black">${escHtml(m.black)}</span> `
+    ).join('');
+  }
+
+  function accClass(v) {
+    if (v === undefined || v === null) return 'na';
+    if (v >= 85) return 'high';
+    if (v >= 65) return 'medium';
+    return 'low';
+  }
+
   function escHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 </script>
 
