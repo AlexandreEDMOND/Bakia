@@ -1,26 +1,39 @@
 import { Chess } from 'chess.js';
 
-// ── Stockfish worker ──────────────────────────────────────────
-let worker = null;
+// ── Stockfish worker singleton ─────────────────────────────────
+let worker  = null;
+let ready   = false;
+let readyPromise = null;
 
 function getWorker() {
-  if (!worker) worker = new Worker('/stockfish.js');
-  return worker;
+  if (worker) return { worker, ready: readyPromise };
+
+  worker = new Worker('/stockfish.js');
+
+  readyPromise = new Promise((resolve) => {
+    worker.addEventListener('message', function onReady(e) {
+      // Stockfish sends 'uciok' after receiving 'uci'
+      if (typeof e.data === 'string' && e.data.includes('uciok')) {
+        worker.removeEventListener('message', onReady);
+        ready = true;
+        resolve();
+      }
+    });
+    worker.postMessage('uci');
+  });
+
+  return { worker, ready: readyPromise };
 }
 
-function sendCmd(sf, cmd) {
-  sf.postMessage(cmd);
-}
-
+// ── Send a command and wait for 'bestmove' response ────────────
 function evalPosition(sf, fen, depth = 16) {
   return new Promise((resolve) => {
     let bestScore = null;
     let bestMove  = null;
 
     const handler = (e) => {
-      const line = e.data;
+      const line = typeof e.data === 'string' ? e.data : '';
 
-      // Parse score
       const cpMatch   = line.match(/score cp (-?\d+)/);
       const mateMatch = line.match(/score mate (-?\d+)/);
       const pvMatch   = line.match(/ pv ([a-h][1-8][a-h][1-8][qrbn]?)/);
@@ -29,25 +42,21 @@ function evalPosition(sf, fen, depth = 16) {
       if (mateMatch) bestScore = parseInt(mateMatch[1], 10) > 0 ? 99999 : -99999;
       if (pvMatch)   bestMove  = pvMatch[1];
 
-      if (line.startsWith(`bestmove`)) {
+      if (line.startsWith('bestmove')) {
         sf.removeEventListener('message', handler);
-        resolve({ score: bestScore, move: bestMove });
+        resolve({ score: bestScore ?? 0, move: bestMove });
       }
     };
 
     sf.addEventListener('message', handler);
-    sendCmd(sf, `position fen ${fen}`);
-    sendCmd(sf, `go depth ${depth}`);
+    sf.postMessage(`position fen ${fen}`);
+    sf.postMessage(`go depth ${depth}`);
   });
 }
 
-// ── Classify a move based on centipawn loss ───────────────────
-// score = eval after move (from perspective of side that just moved, negated)
-// prev  = eval before move
-export function classifyMove(prevScore, afterScore) {
-  // Both scores in white's POV (positive = white better)
-  const loss = prevScore - afterScore; // positive means the moving side lost something
-
+// ── Classify a move by centipawn loss ──────────────────────────
+export function classifyMove(prevFromMoving, afterFromMoving) {
+  const loss = prevFromMoving - afterFromMoving;
   if (loss < 10)  return 'best';
   if (loss < 25)  return 'excellent';
   if (loss < 50)  return 'good';
@@ -56,57 +65,49 @@ export function classifyMove(prevScore, afterScore) {
   return 'blunder';
 }
 
-// ── Main analysis function ────────────────────────────────────
+// ── Main analysis ──────────────────────────────────────────────
 export async function analyzeGame(pgn, onProgress) {
   const chess = new Chess();
   chess.loadPgn(pgn);
   const history = chess.history({ verbose: true });
 
-  // Replay from start to collect FENs
+  // Replay from start to collect FENs after each move
   const replayChess = new Chess();
-  const fens = [replayChess.fen()]; // starting position
+  const fens = [replayChess.fen()];
   for (const move of history) {
     replayChess.move(move);
     fens.push(replayChess.fen());
   }
 
-  const sf = getWorker();
-  sendCmd(sf, 'uci');
-  sendCmd(sf, 'ucinewgame');
+  const { worker: sf, ready } = getWorker();
+  await ready; // Wait for 'uciok' before sending commands
+  sf.postMessage('ucinewgame');
 
-  const evals = []; // centipawn scores (from white's perspective)
+  const evals = [];
   for (let i = 0; i < fens.length; i++) {
     onProgress?.(i, fens.length);
     const { score } = await evalPosition(sf, fens[i], 16);
-    // Normalise: always from white's POV
+    // Normalise to white's POV
     const isBlackToMove = fens[i].split(' ')[1] === 'b';
-    const whitePov = isBlackToMove ? -(score ?? 0) : (score ?? 0);
-    evals.push(whitePov);
+    evals.push(isBlackToMove ? -score : score);
   }
+  onProgress?.(fens.length, fens.length);
 
-  // Build per-move analysis
   const moves = history.map((move, i) => {
-    const prevEval = evals[i];
-    const afterEval = evals[i + 1];
-    const isWhiteMove = i % 2 === 0;
-
-    // Loss from the perspective of the player who just moved
-    const prevFromMoving = isWhiteMove ?  prevEval : -prevEval;
-    const afterFromMoving = isWhiteMove ? afterEval : -afterEval;
-    const cpLoss = prevFromMoving - afterFromMoving;
+    const isWhiteMove      = i % 2 === 0;
+    const prevFromMoving   = isWhiteMove ?  evals[i]     : -evals[i];
+    const afterFromMoving  = isWhiteMove ?  evals[i + 1] : -evals[i + 1];
+    const cpLoss           = Math.max(0, prevFromMoving - afterFromMoving);
 
     return {
-      san: move.san,
-      from: move.from,
-      to: move.to,
-      color: move.color, // 'w' | 'b'
-      prevEval,
-      afterEval,
-      cpLoss: Math.max(0, cpLoss),
+      san:            move.san,
+      color:          move.color,
+      prevEval:       evals[i],
+      afterEval:      evals[i + 1],
+      cpLoss,
       classification: classifyMove(prevFromMoving, afterFromMoving),
     };
   });
 
-  onProgress?.(fens.length, fens.length);
   return { moves, evals };
 }
