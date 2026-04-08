@@ -1,10 +1,12 @@
 {
   "name": "bakia",
   "version": "0.1.0",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "server": "node server.js",
     "postinstall": "cp node_modules/stockfish/src/stockfish.js public/stockfish.js && cp node_modules/stockfish/src/stockfish.wasm public/stockfish.wasm && cp node_modules/stockfish/src/stockfish.asm.js public/stockfish.asm.js"
   },
   "devDependencies": {
@@ -12,6 +14,10 @@
   },
   "dependencies": {
     "chess.js": "^1.4.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "pg": "^8.12.0",
     "stockfish": "^10.0.2"
   }
 }

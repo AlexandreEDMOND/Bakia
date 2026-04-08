@@ -5,10 +5,15 @@ import {
   gameOutcome, countryFlag, titleColor, evalToPct,
   parseMoveClocks, formatClock,
 } from './utils.js';
+import {
+  getProfiles, getProfileFromDb, saveProfile, saveGames,
+  getAnalysis, saveAnalysis,
+} from './db.js';
 
 // ── State ──────────────────────────────────────────────────────
 let currentUsername = '';
 let gamesData = [];
+let currentGameUrl = '';
 
 // ── DOM refs ───────────────────────────────────────────────────
 const input     = document.getElementById('usernameInput');
@@ -44,12 +49,85 @@ async function search() {
     renderProfile(profile, stats);
     statusEl.textContent = `${games.length} dernières parties`;
     gamesEl.innerHTML = games.map((g, i) => renderCard(g, i)).join('');
+
+    // Sauvegarde en DB (silencieuse)
+    saveProfile(currentUsername, profile, stats).catch(() => {});
+    saveGames(currentUsername, games).catch(() => {});
+    loadHistory();
   } catch (err) {
     statusEl.className = 'error';
     statusEl.textContent = err.message;
   } finally {
     btn.disabled = false;
   }
+}
+
+// ── Chargement depuis le cache DB ──────────────────────────────
+window.loadProfileFromDb = async function(username) {
+  input.value = username;
+  currentUsername = username.toLowerCase();
+  gamesEl.innerHTML = '';
+  statusEl.className = '';
+  statusEl.textContent = 'Chargement depuis le cache…';
+
+  try {
+    const data = await getProfileFromDb(username);
+    if (!data) { search(); return; }
+
+    gamesData = data.games;
+    renderProfile(data.profile, data.stats);
+    const ago = timeSince(new Date(data.last_fetched_at));
+    statusEl.innerHTML =
+      `${data.games.length} parties · ${ago}` +
+      ` <button class="refresh-btn" onclick="search()">↻ Rafraîchir</button>`;
+    gamesEl.innerHTML = data.games.map((g, i) => renderCard(g, i)).join('');
+  } catch (err) {
+    statusEl.className = 'error';
+    statusEl.textContent = err.message;
+  }
+};
+
+function timeSince(date) {
+  const s = Math.floor((Date.now() - date) / 1000);
+  if (s < 60)   return 'il y a quelques secondes';
+  if (s < 3600) return `il y a ${Math.floor(s / 60)} min`;
+  if (s < 86400) return `il y a ${Math.floor(s / 3600)} h`;
+  return `il y a ${Math.floor(s / 86400)} j`;
+}
+
+// ── Historique des profils ──────────────────────────────────────
+async function loadHistory() {
+  try {
+    const profiles = await getProfiles();
+    renderHistoryPanel(profiles);
+  } catch (_) { /* API non disponible */ }
+}
+
+function renderHistoryPanel(profiles) {
+  const panel = document.getElementById('historyPanel');
+  const list  = document.getElementById('historyList');
+  if (!profiles.length) { panel.style.display = 'none'; return; }
+
+  panel.style.display = 'block';
+  list.innerHTML = profiles.map(p => {
+    const prof = p.profile_json;
+    const date = new Date(p.last_fetched_at).toLocaleDateString('fr-FR', { day:'2-digit', month:'short' });
+    const title = prof.title
+      ? `<span style="color:${titleColor(prof.title)};font-size:.65rem;font-weight:700">${prof.title}</span> `
+      : '';
+    const avatar = prof.avatar
+      ? `<img class="hp-avatar" src="${escHtml(prof.avatar)}" alt="">`
+      : `<div class="hp-avatar hp-avatar-ph">♟</div>`;
+    const isActive = p.username === currentUsername;
+    return `
+      <div class="hp-chip${isActive ? ' hp-active' : ''}" onclick="loadProfileFromDb('${escHtml(p.username)}')">
+        ${avatar}
+        <div class="hp-info">
+          <div class="hp-name">${title}${escHtml(p.username)}</div>
+          <div class="hp-date">${date}</div>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 window.search = search;
@@ -135,9 +213,20 @@ function renderCard(game, index) {
 // ── Modal ──────────────────────────────────────────────────────
 window.openModal = function(index) {
   const game = gamesData[index];
+  currentGameUrl = game.url;
   modalBody.innerHTML = buildModalHtml(game);
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
+
+  // Vérifie si une analyse est déjà en cache
+  getAnalysis(game.url).then(cached => {
+    if (!cached) return;
+    const analyseBtn = document.querySelector('.analyze-btn');
+    if (analyseBtn && !analyseBtn.disabled) {
+      analyseBtn.innerHTML = '⚡ Charger l\'analyse (en cache)';
+      analyseBtn.dataset.cached = '1';
+    }
+  }).catch(() => {});
 };
 
 function closeModal() {
@@ -272,22 +361,28 @@ function buildMovesHtml(pgn, clocks) {
 // ── Stockfish analysis ─────────────────────────────────────────
 window.startAnalysis = async function(btn) {
   btn.disabled = true;
-  btn.textContent = 'Analyse en cours…';
-
   const resultDiv = document.getElementById('analysisResult');
   resultDiv.style.display = 'block';
+
+  const game = gamesData.find(g => g.url === currentGameUrl) || gamesData[0];
+
+  // Vérifie le cache DB en premier
+  try {
+    const cached = await getAnalysis(currentGameUrl);
+    if (cached) {
+      resultDiv.innerHTML = buildAnalysisHtml(cached.moves_json, cached.evals_json, game) +
+        `<div class="cache-notice">⚡ Analyse chargée depuis le cache</div>`;
+      btn.textContent = '✓ Analyse chargée';
+      return;
+    }
+  } catch (_) { /* continue sans cache */ }
+
+  btn.textContent = 'Analyse en cours…';
   resultDiv.innerHTML = `
     <div class="analysis-progress">
       <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
       <div class="prog-label" id="progLabel">Initialisation…</div>
     </div>`;
-
-  const gameIndex = gamesData.findIndex(g =>
-    document.querySelector('.modal-banner') && true // already opened
-  );
-  // Find current game by matching the open modal URL
-  const link = document.querySelector('.view-link');
-  const game = gamesData.find(g => g.url === link?.href) || gamesData[0];
 
   try {
     const { moves, evals } = await analyzeGame(game.pgn, (done, total) => {
@@ -299,6 +394,10 @@ window.startAnalysis = async function(btn) {
     });
 
     resultDiv.innerHTML = buildAnalysisHtml(moves, evals, game);
+    btn.textContent = '✓ Analyse terminée';
+
+    // Sauvegarde en DB (silencieuse)
+    saveAnalysis(currentGameUrl, moves, evals).catch(() => {});
   } catch (err) {
     resultDiv.innerHTML = `<div class="analysis-error">Erreur : ${escHtml(err.message)}</div>`;
     btn.disabled  = false;
@@ -426,3 +525,6 @@ function buildEvalGraph(evals) {
       <text x="4" y="${H - 4}" fill="#9ca3af" font-size="9" font-family="sans-serif">Noirs</text>
     </svg>`;
 }
+
+// ── Init ────────────────────────────────────────────────────────
+loadHistory();
